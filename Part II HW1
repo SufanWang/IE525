@@ -1,0 +1,134 @@
+#include <iostream>
+#include <iomanip>
+#include <cmath>
+#include <fstream>
+#include <cstdlib>
+
+#include"time.h"
+
+using namespace std;
+
+double K=1870, T=1.0/52, S0=1868.99, r=0.003866, q=0.0232, volatility=0.2979;
+
+double se;
+
+double gaussrand()
+{
+	static double V1, V2, S;
+	static int phase = 0;
+	double X;
+
+	if (phase == 0) {
+		do {
+			double U1 = (double)rand() / RAND_MAX;
+			double U2 = (double)rand() / RAND_MAX;
+
+			V1 = 2 * U1 - 1.0;
+			V2 = 2 * U2 - 1.0;
+			S = V1 * V1 + V2 * V2;
+		} while (S >= 1.0 || S == 0);
+
+		X = V1 * sqrt(-2 * log(S) / S);
+	}
+	else
+		X = V2 * sqrt(-2 * log(S) / S);
+
+	phase = 1.0 - phase;
+
+	return X;
+}
+
+
+double max(double a, double b) 
+{
+	if (a >= b){return a;}
+	if (b > a) { return b; }
+}
+
+double Caculate_St(double S0, double r, double q, double volatility,double T) {
+	double St;
+	St = S0 * exp((r - q - 0.5 * pow(volatility, 2)) * T + volatility * sqrt(T) * gaussrand());
+	return St;
+}
+
+double Caculate_Si_plus(double S0, double r, double q, double volatility, double T) {
+	double Si_plus;
+	Si_plus = S0 * exp((r - q - 0.5 * pow(volatility, 2)) * T + volatility * sqrt(T) * gaussrand());
+	return Si_plus;
+}
+
+double Caculate_Si_minus(double S0, double r, double q, double volatility, double T) {
+	double Si_minus;
+	Si_minus = S0 * exp((r - q - 0.5 * pow(volatility, 2)) * T - volatility * sqrt(T) * gaussrand());
+	return Si_minus;
+}
+
+
+int main(int argc, char* argv[])
+{
+	srand(0);
+	clock_t start, finish;
+	double Times,Times_1;
+	double sample_size = 40000000;
+	double x_bar = 0, y_bar = 0;
+	double x_bar_1 = 0, y_bar_1 = 0;
+	double c, c_star;
+	double price, price_1, standard_error, standard_error_1, upper_factor, upper_factor_1, lower_factor,lower_factor_1, efficiency,efficiency_1;
+	
+
+	start = clock();
+	for (int i = 1; i <= sample_size; i++)
+	{
+		
+		c = exp(-r * T) * max(Caculate_St(S0, r, q, volatility, T) - K, 0);
+		x_bar = (1.0 - 1.0 / i) * x_bar + c * (1.0 / i);
+		y_bar = (1.0 - 1.0 / i) * y_bar + pow(c, 2) * (1.0 / i);
+
+	}
+
+	finish = clock();
+	Times = (double)(finish - start) / CLOCKS_PER_SEC;
+
+	clock_t begin, stop;
+	begin = clock();
+	for (int i = 1; i <= sample_size; i++)
+	{
+		c_star= 0.5*exp(-r * T) * (max(Caculate_Si_plus(S0, r, q, volatility, T) - K, 0)+max(Caculate_Si_minus(S0, r, q, volatility, T) - K, 0));
+		x_bar_1 = (1.0 - 1.0 / i) * x_bar_1 + c_star * (1.0 / i);
+		y_bar_1 = (1.0 - 1.0 / i) * y_bar_1 + pow(c_star, 2) * (1.0 / i);
+		
+
+	}
+
+	stop = clock();
+	Times_1 = (double)(stop - begin) / CLOCKS_PER_SEC;
+
+
+	price = x_bar;
+	standard_error = sqrt((1.0 / (sample_size-1)) * (y_bar - pow(x_bar, 2)));
+	upper_factor = price + 1.96 * standard_error;
+	lower_factor = price - 1.96 * standard_error;
+	efficiency = pow(standard_error, 2) * Times;
+
+	price_1 = x_bar_1;
+	standard_error_1 = sqrt((1.0 / (sample_size - 1)) * (y_bar_1 - pow(x_bar_1, 2)));
+	upper_factor_1 = price_1 + 1.96 * standard_error_1;
+	lower_factor_1= price_1 - 1.96 * standard_error_1;
+	efficiency_1 = pow(standard_error_1, 2) * Times_1;
+
+	cout << "estimated price: "<<price << endl;
+	cout << "standard error: " << standard_error << endl;
+	cout << "confident interval: (" << lower_factor<<","<< upper_factor<<")" << endl;
+	cout << "time: " << Times << endl;
+	cout << "efficiency: " << efficiency << endl;
+
+	cout << "estimated price: " << price_1 << endl;
+	cout << "standard error: " << standard_error_1 << endl;
+	cout << "confident interval: (" << lower_factor_1 << "," << upper_factor_1 << ")" << endl;
+	cout << "time: " << Times_1 << endl;
+	cout << "efficiency: " << efficiency_1 << endl;
+
+	
+
+	return 0;
+}
