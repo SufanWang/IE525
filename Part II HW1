@@ -80,11 +80,13 @@ int main(int argc, char* argv[])
 	for (int i = 1; i <= sample_size; i++)
 	{
 		
-		c = exp(-r * T) * max(Caculate_St(S0, r, q, volatility, T) - K, 0);
+		c = max(Caculate_St(S0, r, q, volatility, T) - K, 0);
 		x_bar = (1.0 - 1.0 / i) * x_bar + c * (1.0 / i);
 		y_bar = (1.0 - 1.0 / i) * y_bar + pow(c, 2) * (1.0 / i);
 
 	}
+	x_bar = exp(-r * T) * x_bar;
+	y_bar = exp(-2*r * T) * y_bar;
 
 	finish = clock();
 	Times = (double)(finish - start) / CLOCKS_PER_SEC;
@@ -93,13 +95,14 @@ int main(int argc, char* argv[])
 	begin = clock();
 	for (int i = 1; i <= sample_size; i++)
 	{
-		c_star= 0.5*exp(-r * T) * (max(Caculate_Si_plus(S0, r, q, volatility, T) - K, 0)+max(Caculate_Si_minus(S0, r, q, volatility, T) - K, 0));
+		c_star= 0.5*(max(Caculate_Si_plus(S0, r, q, volatility, T) - K, 0)+max(Caculate_Si_minus(S0, r, q, volatility, T) - K, 0));
 		x_bar_1 = (1.0 - 1.0 / i) * x_bar_1 + c_star * (1.0 / i);
 		y_bar_1 = (1.0 - 1.0 / i) * y_bar_1 + pow(c_star, 2) * (1.0 / i);
 		
 
 	}
-
+	x_bar_1 = exp(-r * T) * x_bar_1;
+	y_bar_1 = exp(-2 * r * T) * y_bar_1;
 	stop = clock();
 	Times_1 = (double)(stop - begin) / CLOCKS_PER_SEC;
 
